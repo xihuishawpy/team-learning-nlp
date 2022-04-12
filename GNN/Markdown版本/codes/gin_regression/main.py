@@ -40,22 +40,25 @@ def parse_args():
                         help='number of workers (default: 4)')
     parser.add_argument('--dataset_root', type=str, default="dataset",
                         help='dataset root')
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def prepartion(args):
     save_dir = os.path.join('saves', args.task_name)
     if os.path.exists(save_dir):
         for idx in range(1000):
-            if not os.path.exists(save_dir + '=' + str(idx)):
-                save_dir = save_dir + '=' + str(idx)
+            if not os.path.exists(f'{save_dir}={str(idx)}'):
+                save_dir = f'{save_dir}={str(idx)}'
                 break
 
     args.save_dir = save_dir
     os.makedirs(args.save_dir, exist_ok=True)
-    args.device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
+    args.device = (
+        torch.device(f"cuda:{str(args.device)}")
+        if torch.cuda.is_available()
+        else torch.device("cpu")
+    )
+
     args.output_file = open(os.path.join(args.save_dir, 'output'), 'a')
     print(args, file=args.output_file, flush=True)
 
@@ -82,7 +85,7 @@ def eval(model, device, loader, evaluator):
     y_pred = []
 
     with torch.no_grad():
-        for _, batch in enumerate(tqdm(loader)):
+        for batch in tqdm(loader):
             batch = batch.to(device)
             pred = model(batch).view(-1,)
             y_true.append(batch.y.view(pred.shape).detach().cpu())
@@ -99,7 +102,7 @@ def test(model, device, loader):
     y_pred = []
 
     with torch.no_grad():
-        for _, batch in enumerate(loader):
+        for batch in loader:
             batch = batch.to(device)
             pred = model(batch).view(-1,)
             y_pred.append(pred.detach().cpu())
@@ -146,7 +149,7 @@ def main(args):
     not_improved = 0
     best_valid_mae = 9999
     for epoch in range(1, args.epochs + 1):
-        print("=====Epoch {}".format(epoch), file=args.output_file, flush=True)
+        print(f"=====Epoch {epoch}", file=args.output_file, flush=True)
         print('Training...', file=args.output_file, flush=True)
         train_mae = train(model, device, train_loader, optimizer, criterion_fn)
 

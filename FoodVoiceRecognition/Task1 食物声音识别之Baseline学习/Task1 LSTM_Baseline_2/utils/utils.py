@@ -59,5 +59,4 @@ def get_attn_pad_mask(padded_input, input_lengths, expand_length):
     non_pad_mask = get_non_pad_mask(padded_input, input_lengths=input_lengths)
     # N x Ti, lt(1) like not operation
     pad_mask = non_pad_mask.squeeze(-1).lt(1)
-    attn_mask = pad_mask.unsqueeze(1).expand(-1, expand_length, -1)
-    return attn_mask
+    return pad_mask.unsqueeze(1).expand(-1, expand_length, -1)

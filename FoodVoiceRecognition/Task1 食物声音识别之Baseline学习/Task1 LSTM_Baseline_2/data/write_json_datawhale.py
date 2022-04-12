@@ -23,9 +23,11 @@ def write_mydata_json():
             for index, file in enumerate(files):
                 featrue_path = mfcc_path + file.replace('wav', 'npy')
                 shape_num = list(np.load(featrue_path).shape)
-                input_dict = {'feat': '../clips_rd_mfcc/{}'.format(file.replace('wav', 'npy')),
-                              'shape': shape_num,
-                              }
+                input_dict = {
+                    'feat': f"../clips_rd_mfcc/{file.replace('wav', 'npy')}",
+                    'shape': shape_num,
+                }
+
                 if index <= train_num:
                     train_dict.update({file:input_dict})
                 else:

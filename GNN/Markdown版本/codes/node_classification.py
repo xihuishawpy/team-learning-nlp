@@ -94,7 +94,7 @@ class PlanetoidPubMed(InMemoryDataset):
     @property
     def raw_file_names(self):
         names = ['x', 'tx', 'allx', 'y', 'ty', 'ally', 'graph', 'test.index']
-        return ['ind.pubmed.{}'.format(name) for name in names]
+        return [f'ind.pubmed.{name}' for name in names]
 
     @property
     def processed_file_names(self):
@@ -102,7 +102,7 @@ class PlanetoidPubMed(InMemoryDataset):
 
     def download(self):
         for name in self.raw_file_names:
-            download_url('{}/{}'.format(self.url, name), self.raw_dir)
+            download_url(f'{self.url}/{name}', self.raw_dir)
 
     def process(self):
         data = read_planetoid_data(self.raw_dir, 'pubmed')
@@ -110,7 +110,7 @@ class PlanetoidPubMed(InMemoryDataset):
         torch.save(self.collate([data]), self.processed_paths[0])
 
     def __repr__(self):
-        return '{}()'.format(self.name)
+        return f'{self.name}()'
 
 
 dataset = PlanetoidPubMed(root='data/PlanetoidPubMed/', transform=NormalizeFeatures())
@@ -133,8 +133,7 @@ def test():
     out = model(data.x, data.edge_index)
     pred = out.argmax(dim=1)  # Use the class with highest probability.
     test_correct = pred[data.test_mask] == data.y[data.test_mask]  # Check against ground-truth labels.
-    test_acc = int(test_correct.sum()) / int(data.test_mask.sum())  # Derive ratio of correct predictions.
-    return test_acc
+    return int(test_correct.sum()) / int(data.test_mask.sum())
 
 
 class GAT(torch.nn.Module):
@@ -144,8 +143,12 @@ class GAT(torch.nn.Module):
         hns = [num_features] + hidden_channels_list
         conv_list = []
         for idx in range(len(hidden_channels_list)):
-            conv_list.append((GATConv(hns[idx], hns[idx+1]), 'x, edge_index -> x'))
-            conv_list.append(ReLU(inplace=True),)
+            conv_list.extend(
+                (
+                    (GATConv(hns[idx], hns[idx + 1]), 'x, edge_index -> x'),
+                    ReLU(inplace=True),
+                )
+            )
 
         self.convseq = Sequential('x, edge_index', conv_list)
         self.linear = Linear(hidden_channels_list[-1], num_classes)

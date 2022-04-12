@@ -38,10 +38,10 @@ class AudioDataset(data.Dataset):
             data_mfcc[1]['shape'][0]), reverse=True)
         # change batchsize depending on the input and output length
         minibatch = []
+        start = 0
         # Method 1: Generate minibatch based on batch_size
         # i.e. each batch contains #batch_size utterances
         if batch_frames == 0:
-            start = 0
             while True:
                 ilen = int(sorted_data_mfcc[start]['shape'][0])
                 olen = int(sorted_data_mfcc[start][1]['output'][0]['shape'][0])
@@ -60,12 +60,9 @@ class AudioDataset(data.Dataset):
                 if end == len(sorted_data_mfcc):
                     break
                 start = end
-        # Method 2: Generate minibatch based on batch_frames
-        # i.e. each batch contains approximately #batch_frames frames
         else:  # batch_frames > 0
             print("NOTE: Generate minibatch based on batch_frames.")
             print("i.e. each batch contains approximately #batch_frames frames")
-            start = 0
             while True:
                 total_frames = 0
                 end = start

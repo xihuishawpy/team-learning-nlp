@@ -32,7 +32,7 @@ class GINNodeEmbedding(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.batch_norms = torch.nn.ModuleList()
 
-        for layer in range(num_layers):
+        for _ in range(num_layers):
             self.convs.append(GINConv(emb_dim))
             self.batch_norms.append(torch.nn.BatchNorm1d(emb_dim))
 
@@ -59,9 +59,9 @@ class GINNodeEmbedding(torch.nn.Module):
         if self.JK == "last":
             node_representation = h_list[-1]
         elif self.JK == "sum":
-            node_representation = 0
-            for layer in range(self.num_layers + 1):
-                node_representation += h_list[layer]
+            node_representation = sum(
+                h_list[layer] for layer in range(self.num_layers + 1)
+            )
 
         return node_representation
 

@@ -57,7 +57,7 @@ class Solver(object):
     def _reset(self):
         # Reset
         if self.continue_from:
-            print('Loading checkpoint model %s' % self.continue_from)
+            print(f'Loading checkpoint model {self.continue_from}')
             package = torch.load(self.continue_from)
             self.model.load_state_dict(package['state_dict'])
             self.optimizer.load_state_dict(package['optim_dict'])
@@ -103,7 +103,7 @@ class Solver(object):
                                                 tr_loss=self.tr_loss,
                                                 cv_loss=self.cv_loss),
                            file_path)
-                print('Saving checkpoint model to %s' % file_path)
+                print(f'Saving checkpoint model to {file_path}')
 
             # Cross validation
             print('Cross validation...')
@@ -127,14 +127,16 @@ class Solver(object):
                                                 tr_loss=self.tr_loss,
                                                 cv_loss=self.cv_loss),
                            file_path)
-                print("Find better validated model, saving to %s" % file_path)
+                print(f"Find better validated model, saving to {file_path}")
                 print('######################################################')
 
             # visualizing loss using visdom
             if self.visdom:
-                x_axis = self.vis_epochs[0:epoch + 1]
+                x_axis = self.vis_epochs[:epoch + 1]
                 y_axis = torch.stack(
-                    (self.tr_loss[0:epoch + 1], self.cv_loss[0:epoch + 1]), dim=1)
+                    (self.tr_loss[: epoch + 1], self.cv_loss[: epoch + 1]), dim=1
+                )
+
                 if self.vis_window is None:
                     self.vis_window = self.vis.line(
                         X=x_axis,
@@ -155,12 +157,16 @@ class Solver(object):
         total_loss = 0
         sum_loss = 0
 
-        data_loader = self.tr_loader if not cross_valid else self.cv_loader
+        data_loader = self.cv_loader if cross_valid else self.tr_loader
         print('batch length:', len(data_loader))
         # visualizing loss using visdom
         if self.visdom_epoch and not cross_valid:
-            vis_opts_epoch = dict(title=self.visdom_id + " epoch " + str(epoch),
-                                  ylabel='Loss', xlabel='Epoch')
+            vis_opts_epoch = dict(
+                title=f"{self.visdom_id} epoch {str(epoch)}",
+                ylabel='Loss',
+                xlabel='Epoch',
+            )
+
             vis_window_epoch = None
             vis_iters = torch.arange(1, len(data_loader) + 1)
             vis_iters_loss = torch.Tensor(len(data_loader))

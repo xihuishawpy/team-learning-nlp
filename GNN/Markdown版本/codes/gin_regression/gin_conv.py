@@ -20,8 +20,10 @@ class GINConv(MessagePassing):
 
     def forward(self, x, edge_index, edge_attr):
         edge_embedding = self.bond_encoder(edge_attr) # 先将类别型边属性转换为边嵌入
-        out = self.mlp((1 + self.eps) *x + self.propagate(edge_index, x=x, edge_attr=edge_embedding))
-        return out
+        return self.mlp(
+            (1 + self.eps) * x
+            + self.propagate(edge_index, x=x, edge_attr=edge_embedding)
+        )
 
     def message(self, x_j, edge_attr):
         return F.relu(x_j + edge_attr)

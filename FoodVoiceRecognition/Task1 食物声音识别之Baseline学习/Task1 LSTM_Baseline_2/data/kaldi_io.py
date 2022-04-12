@@ -11,7 +11,7 @@ import sys, os, re, gzip, struct
 # Adding kaldi tools to shell path,
 
 # Select kaldi,
-if not 'KALDI_ROOT' in os.environ:
+if 'KALDI_ROOT' not in os.environ:
   # Default! To change run python with 'export KALDI_ROOT=/some_dir python'
   os.environ['KALDI_ROOT']='/mnt/matylda5/iveselyk/Tools/kaldi-trunk'
 
@@ -19,15 +19,11 @@ if not 'KALDI_ROOT' in os.environ:
 os.environ['PATH'] = os.popen('echo $KALDI_ROOT/src/bin:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/src/fstbin/:$KALDI_ROOT/src/gmmbin/:$KALDI_ROOT/src/featbin/:$KALDI_ROOT/src/lm/:$KALDI_ROOT/src/sgmmbin/:$KALDI_ROOT/src/sgmm2bin/:$KALDI_ROOT/src/fgmmbin/:$KALDI_ROOT/src/latbin/:$KALDI_ROOT/src/nnetbin:$KALDI_ROOT/src/nnet2bin:$KALDI_ROOT/src/nnet3bin:$KALDI_ROOT/src/online2bin/:$KALDI_ROOT/src/ivectorbin/:$KALDI_ROOT/src/lmbin/').readline().strip() + ':' + os.environ['PATH']
 
 
-#################################################
-# Define all custom exceptions,
 class UnsupportedDataType(Exception): pass
 class UnknownVectorHeader(Exception): pass
 class UnknownMatrixHeader(Exception): pass
-
 class BadSampleSize(Exception): pass
 class BadInputFormat(Exception): pass
-
 class SubprocessFailed(Exception): pass
 
 #################################################
@@ -135,11 +131,9 @@ def read_vec_int_ark(file_or_fd):
   """
   fd = open_or_fd(file_or_fd)
   try:
-    key = read_key(fd)
-    while key:
+    while key := read_key(fd):
       ali = read_vec_int(fd)
       yield key, ali
-      key = read_key(fd)
   finally:
     if fd is not file_or_fd: fd.close()
 
@@ -186,7 +180,8 @@ def write_vec_int(file_or_fd, v, key=''):
   fd = open_or_fd(file_or_fd, mode='wb')
   if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
-    if key != '' : fd.write((key+' ').encode("latin1")) # ark-files have keys (utterance-id),
+    if key != '':
+      fd.write(f'{key} '.encode("latin1"))
     fd.write('\0B'.encode()) # we write binary!
     # dim,
     fd.write('\4'.encode()) # int32 type,
@@ -234,11 +229,9 @@ def read_vec_flt_ark(file_or_fd):
   """
   fd = open_or_fd(file_or_fd)
   try:
-    key = read_key(fd)
-    while key:
+    while key := read_key(fd):
       ali = read_vec_flt(fd)
       yield key, ali
-      key = read_key(fd)
   finally:
     if fd is not file_or_fd: fd.close()
 
@@ -248,15 +241,14 @@ def read_vec_flt(file_or_fd):
   """
   fd = open_or_fd(file_or_fd)
   binary = fd.read(2).decode()
-  if binary == '\0B': # binary flag
+  if binary == '\0B':
     return _read_vec_flt_binary(fd)
-  else:  # ascii,
-    arr = (binary + fd.readline().decode()).strip().split()
-    try:
-      arr.remove('['); arr.remove(']') # optionally
-    except ValueError:
-      pass
-    ans = np.array(arr, dtype=float)
+  arr = (binary + fd.readline().decode()).strip().split()
+  try:
+    arr.remove('['); arr.remove(']') # optionally
+  except ValueError:
+    pass
+  ans = np.array(arr, dtype=float)
   if fd is not file_or_fd : fd.close() # cleanup
   return ans
 
@@ -297,7 +289,8 @@ def write_vec_flt(file_or_fd, v, key=''):
   fd = open_or_fd(file_or_fd, mode='wb')
   if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
-    if key != '' : fd.write((key+' ').encode("latin1")) # ark-files have keys (utterance-id),
+    if key != '':
+      fd.write(f'{key} '.encode("latin1"))
     fd.write('\0B'.encode()) # we write binary!
     # Data-type,
     if v.dtype == 'float32': fd.write('FV '.encode())
@@ -351,11 +344,9 @@ def read_mat_ark(file_or_fd):
   """
   fd = open_or_fd(file_or_fd)
   try:
-    key = read_key(fd)
-    while key:
+    while key := read_key(fd):
       mat = read_mat(fd)
       yield key, mat
-      key = read_key(fd)
   finally:
     if fd is not file_or_fd : fd.close()
 
@@ -392,8 +383,7 @@ def _read_mat_binary(fd):
   if sample_size == 4 : vec = np.frombuffer(buf, dtype='float32')
   elif sample_size == 8 : vec = np.frombuffer(buf, dtype='float64')
   else : raise BadSampleSize
-  mat = np.reshape(vec,(rows,cols))
-  return mat
+  return np.reshape(vec,(rows,cols))
 
 def _read_mat_ascii(fd):
   rows = []
@@ -406,8 +396,7 @@ def _read_mat_ascii(fd):
       rows.append(np.array(arr,dtype='float32')) # not last line
     else:
       rows.append(np.array(arr[:-1],dtype='float32')) # last line
-      mat = np.vstack(rows)
-      return mat
+      return np.vstack(rows)
 
 
 def _read_compressed_mat(fd, format):
@@ -427,7 +416,13 @@ def _read_compressed_mat(fd, format):
   # The data is structed as [Colheader, ... , Colheader, Data, Data , .... ]
   #                         {           cols           }{     size         }
   col_headers = np.frombuffer(fd.read(cols*8), dtype=per_col_header, count=cols)
-  col_headers = np.array([np.array([x for x in y]) * globrange * 1.52590218966964e-05 + globmin for y in col_headers], dtype=np.float32)
+  col_headers = np.array(
+      [
+          np.array(list(y)) * globrange * 1.52590218966964e-05 + globmin
+          for y in col_headers
+      ],
+      dtype=np.float32,
+  )
   data = np.reshape(np.frombuffer(fd.read(cols*rows), dtype='uint8', count=cols*rows), newshape=(cols,rows)) # stored as col-major,
 
   mat = np.zeros((cols,rows), dtype='float32')
@@ -466,7 +461,8 @@ def write_mat(file_or_fd, m, key=''):
   fd = open_or_fd(file_or_fd, mode='wb')
   if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
-    if key != '' : fd.write((key+' ').encode("latin1")) # ark-files have keys (utterance-id),
+    if key != '':
+      fd.write(f'{key} '.encode("latin1"))
     fd.write('\0B'.encode()) # we write binary!
     # Data-type,
     if m.dtype == 'float32': fd.write('FM '.encode())
@@ -509,11 +505,9 @@ def read_post_ark(file_or_fd):
   """
   fd = open_or_fd(file_or_fd)
   try:
-    key = read_key(fd)
-    while key:
+    while key := read_key(fd):
       post = read_post(fd)
       yield key, post
-      key = read_key(fd)
   finally:
     if fd is not file_or_fd: fd.close()
 
@@ -531,13 +525,14 @@ def read_post(file_or_fd):
   """
   fd = open_or_fd(file_or_fd)
   ans=[]
-  binary = fd.read(2).decode(); assert(binary == '\0B'); # binary flag
-  assert(fd.read(1).decode() == '\4'); # int-size
+  binary = fd.read(2).decode()
+  assert(binary == '\0B')
+  assert(fd.read(1).decode() == '\4')
   outer_vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # number of frames (or bins)
 
   # Loop over 'outer-vector',
-  for i in range(outer_vec_size):
-    assert(fd.read(1).decode() == '\4'); # int-size
+  for _ in range(outer_vec_size):
+    assert(fd.read(1).decode() == '\4')
     inner_vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # number of records for frame (or bin)
     data = np.frombuffer(fd.read(inner_vec_size*10), dtype=[('size_idx','int8'),('idx','int32'),('size_post','int8'),('post','float32')], count=inner_vec_size)
     assert(data[0]['size_idx'] == 4)
@@ -567,11 +562,9 @@ def read_cntime_ark(file_or_fd):
   """
   fd = open_or_fd(file_or_fd)
   try:
-    key = read_key(fd)
-    while key:
+    while key := read_key(fd):
       cntime = read_cntime(fd)
       yield key, cntime
-      key = read_key(fd)
   finally:
     if fd is not file_or_fd : fd.close()
 

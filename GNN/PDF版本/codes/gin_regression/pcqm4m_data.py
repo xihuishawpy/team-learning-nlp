@@ -48,12 +48,12 @@ class MyPCQM4MDataset(Dataset):
         edge_attr = torch.from_numpy(graph['edge_feat']).to(torch.int64)
         y = torch.Tensor([homolumogap])
         num_nodes = int(graph['num_nodes'])
-        data = Data(x, edge_index, edge_attr, y, num_nodes=num_nodes)
-        return data
+        return Data(x, edge_index, edge_attr, y, num_nodes=num_nodes)
 
     def get_idx_split(self):
-        split_dict = replace_numpy_with_torchtensor(torch.load(osp.join(self.root, 'pcqm4m_kddcup2021/split_dict.pt')))
-        return split_dict
+        return replace_numpy_with_torchtensor(
+            torch.load(osp.join(self.root, 'pcqm4m_kddcup2021/split_dict.pt'))
+        )
 
 
 if __name__ == "__main__":
@@ -61,5 +61,5 @@ if __name__ == "__main__":
     from torch_geometric.data import DataLoader
     from tqdm import tqdm
     dataloader = DataLoader(dataset, batch_size=256, shuffle=True, num_workers=4)
-    for batch in tqdm(dataloader):
+    for _ in tqdm(dataloader):
         pass

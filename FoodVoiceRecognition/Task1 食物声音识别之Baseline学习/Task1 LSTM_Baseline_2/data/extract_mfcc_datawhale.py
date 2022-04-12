@@ -26,9 +26,7 @@ def extract_mfcc(y, sr, size=1):
     mfcc = librosa.feature.mfcc(S=librosa.power_to_db(melspectrogram), n_mfcc=20)
     mfcc_delta = librosa.feature.delta(mfcc)
     mfcc_delta_delta = librosa.feature.delta(mfcc_delta)
-    mfcc_comb = np.concatenate([mfcc, mfcc_delta, mfcc_delta_delta], axis=0)
-
-    return mfcc_comb
+    return np.concatenate([mfcc, mfcc_delta, mfcc_delta_delta], axis=0)
 
 
 
@@ -51,9 +49,7 @@ def extract_logmel(y, sr, size=1):
 
     # extract log mel spectrogram #####
     melspectrogram = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=2048, hop_length=1024, n_mels=60)
-    logmelspec = librosa.power_to_db(melspectrogram)
-
-    return logmelspec
+    return librosa.power_to_db(melspectrogram)
 
 
 
@@ -69,8 +65,8 @@ def get_feature():
                     y, sr = librosa.load(f_path, sr=None)
                     mfcc_feat = extract_mfcc(y, sr, size=3)
                     mfcc_feat = mfcc_feat.transpose(1, 0)
-                    np.save('../clips_rd_mfcc/{}.npy'.format(file.split('.')[0]), mfcc_feat)
-                    print('the {} is done'.format(str(i)))
+                    np.save(f"../clips_rd_mfcc/{file.split('.')[0]}.npy", mfcc_feat)
+                    print(f'the {str(i)} is done')
                     i += 1
                 except:
                     print(file)

@@ -62,8 +62,4 @@ class GINGraphPooling(nn.Module):
         h_graph = self.pool(h_node, batched_data.batch)
         output = self.graph_pred_linear(h_graph)
 
-        if self.training:
-            return output
-        else:
-            # At inference time, relu is applied to output to ensure positivity
-            return torch.clamp(output, min=0, max=50)
+        return output if self.training else torch.clamp(output, min=0, max=50)
